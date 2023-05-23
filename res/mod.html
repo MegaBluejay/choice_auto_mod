@@ -1,0 +1,91 @@
+<style type="text/css" media="screen">
+ .mod-input {
+     border: solid 1px #ccc;
+     border-radius: 5px;
+     padding: 7px 14px;
+     margin-bottom: 10px;
+ }
+ .mod-search {
+     top: 0;
+     position: sticky;
+ }
+ .mod-list {
+     margin: 0;
+     padding: 0;
+     list-style-type: none;
+ }
+ .mod-list-item {
+     display: block;
+     padding: 10px;
+     box-shadow: inset 0 1px 0 #fff;
+ }
+ .val:empty:after {
+     content: "\200b";
+     visibility: hidden;
+ }
+</style>
+<template id="mod-skeleton">
+  <div>
+    <input type="text" class="search mod-input mod-search" placeholder="search"/>
+    <ul class="list mod-list"></ul>
+  </div>
+</template>
+<template id="mod-list-item">
+  <li class="mod-list-item">
+    <h3 class="name"></h3>
+    <p contenteditable class="val"></p>​
+  </li>
+</template>
+<script src="../list.min.js"></script>
+<script>
+ function showMod() {
+   clearScreen(function() {
+     setButtonTitles();
+     const button = document.getElementById('statsButton');
+     button.innerHTML = "Return to the Game";
+
+     for (const [name, val] of Object.entries(tempStatWrites)) {
+       window.stats[name] = val;
+     }
+
+     const modNode = document.getElementById('mod-skeleton').content.firstElementChild.cloneNode(true);
+     const lst = new List(
+       modNode,
+       {
+         valueNames: ['name', 'val'],
+         item: document.getElementById('mod-list-item').innerHTML,
+       },
+       //        Object.entries(window.stats).flatMap(([name, val]) => /^(scene|sceneName|choice_.*)$/.test(name) ? [] : [{name, val}]),
+     );
+
+     lst.on('updated', function() {
+       for (const item of lst.visibleItems) {
+         const valNode = item.elm.querySelector('.val');
+         valNode.onblur = function () {
+           const val = valNode.innerHTML;
+           tempStatWrites[item.values().name] = val;
+           item.values({val});
+         }
+         valNode.onkeydown = function(event) {
+           if (event.key !== 'Enter') return;
+           event.preventDefault();
+           valNode.blur();
+         }
+         item.elm.onclick = function() {
+           valNode.focus();
+         }
+       }
+     });
+
+     lst.add(
+       Object.entries(window.stats).flatMap(([name, val]) => /^(scene|sceneName|implicit_control_flow|choice_.*)$/.test(name) ? [] : [{name, val}]),
+       function () {},
+     );
+
+     const textNode = document.getElementById('text');
+     textNode.appendChild(modNode);
+     curl();
+   });
+ }
+</script>
+</head>
